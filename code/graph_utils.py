@@ -2,12 +2,25 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import spectrogram
+import pandas as pd
 
 def plot_fft_with_anomalies(data, fault_results):
     st.subheader("🔍 Frequency Spectrum (FFT)")
     show_all = st.toggle("Show All FFT Graphs", value=True)
+    current_processed = {
+    "time_domain": pd.DataFrame(...),
+    "fft": {
+        "sensor1": {
+            "frequencies": [...],
+            "magnitudes": [...],
+        }
+        
+    }
+    
+}
 
-    for col, fft_info in data["fft"].items():
+
+    for col,fft_info in data["fft"].items():
         if not show_all and col != list(data["fft"].keys())[0]:
             continue
 

@@ -75,7 +75,7 @@ with st.expander("📉 Time Domain Signals"):
     plot_time_domain_signals(current_df)
 
 with st.expander("🔍 FFT with Anomaly Detection"):
-    plot_fft_with_anomalies(current_processed, fault_results)
+    plot_fft_with_anomalies(current_processed,fault_results)
 
 with st.expander("🔁 Overlay Comparison with No-Fault Data"):
     plot_overlay_comparison(no_fault_df, current_df)
