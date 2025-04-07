@@ -4,43 +4,39 @@ import numpy as np
 from scipy.signal import spectrogram
 import pandas as pd
 
-def plot_fft_with_anomalies(data, fault_results):
+def plot_fft_with_anomalies(df,fault_sensors,sensor_columns):
     st.subheader("🔍 Frequency Spectrum (FFT)")
     show_all = st.toggle("Show All FFT Graphs", value=True)
-    current_processed = {
-    "time_domain": pd.DataFrame(...),
-    "fft": {
-        "sensor1": {
-            "frequencies": [...],
-            "magnitudes": [...],
-        }
-        
-    }
-    
-}
 
+    for idx, sensor in enumerate(sensor_columns):
+        if not show_all and idx > 0:
+            break  # Show only first if toggle is off
 
-    for col,fft_info in data["fft"].items():
-        if not show_all and col != list(data["fft"].keys())[0]:
+        freq_col = f"{sensor}_fftfreq"
+        amp_col = f"{sensor}_fftspectrum"
+
+        if freq_col not in df.columns or amp_col not in df.columns:
+            st.warning(f"Missing columns for {sensor}")
             continue
 
-        freq = fft_info["freq"]
-        magnitude = fft_info["magnitude"]
-        is_anomaly = col in fault_results.get("anomalies", [])
+        freq = df[freq_col].values
+        magnitude = df[amp_col].values
+        is_anomaly = sensor in fault_sensors
 
         fig, ax = plt.subplots(figsize=(8, 3))
         ax.plot(freq, magnitude, color='blue')
-        ax.set_title(f"FFT of {col}")
+        ax.set_title(f"FFT of {sensor}")
         ax.set_xlabel("Frequency (Hz)")
         ax.set_ylabel("Amplitude")
         ax.grid(True)
 
         if is_anomaly:
             ax.set_facecolor("#ffe6e6")
-            ax.annotate("Anomaly Detected", xy=(freq[np.argmax(magnitude)], max(magnitude)),
-                        xytext=(20, max(magnitude)*0.8),
-                        arrowprops=dict(facecolor='red', shrink=0.05), fontsize=10,
-                        color="red")
+            ax.annotate("Anomaly Detected", 
+                        xy=(freq[magnitude.argmax()], magnitude.max()), 
+                        xytext=(freq[magnitude.argmax()]*0.6, magnitude.max()*0.8),
+                        arrowprops=dict(facecolor='red', shrink=0.05),
+                        fontsize=10, color="red")
 
         st.pyplot(fig)
 
