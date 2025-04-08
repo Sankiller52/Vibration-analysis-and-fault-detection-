@@ -1,22 +1,28 @@
 import streamlit as st
 import os
+import threading
+import time
+import pandas as pd
 from data_loader import get_available_machines, get_machine_and_data, load_data
 from signal_processing import process_signals, calculate_features
 from fault_detection import detect_fault
 from graph_utils import (
     plot_fft_with_anomalies,
-    plot_statistics_summary,
     plot_time_domain_signals,
     plot_overlay_comparison,
     plot_spectrogram,
+    live_data_plot,
 )
-def get_sensor_columns(df):
-    return [col for col in df.columns if col.lower().startswith('sensor')]
-
 
 DATA_DIR = "machine_data"
 st.set_page_config(page_title="Vibration Analysis", layout="wide")
-st.title("🛠️ Vibration Analysis System")
+st.title("🛠️ Real-Time Vibration Analysis System")
+
+# Pin live graph section
+with st.container():
+    st.markdown("<div style='position:fixed;top:80px;right:20px;width:500px;z-index:999;background:white;border:1px solid #ccc;padding:10px;border-radius:10px;'>", unsafe_allow_html=True)
+    live_plot_area = st.empty()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Step 1: Machine selection
 machines = get_available_machines()
@@ -56,64 +62,54 @@ if current_df is None:
     st.stop()
 
 st.success("✅ Current data loaded successfully.")
-st.dataframe(current_df.head())
+
+sensor_columns = [col for col in current_df.columns if col.lower().startswith("sensor")]
+
+# Live Graph Start
+threading.Thread(target=live_data_plot, args=(current_df,sensor_columns), daemon=True).start()
 
 # Step 5: Signal processing
 st.markdown("### 🧪 Signal Processing & Fault Detection")
-no_fault_processed = process_signals(no_fault_df,get_sensor_columns(no_fault_df))
-current_processed = process_signals(current_df,get_sensor_columns((current_df)))
+no_fault_processed = process_signals(no_fault_df, sensor_columns)
+current_processed = process_signals(current_df, sensor_columns)
 st.dataframe(current_processed.head(10))
 st.dataframe(no_fault_df.head(10))
 
 # Step 6: Fault detection
-fault_results = detect_fault(live_df=current_processed,sensor_columns=get_sensor_columns(no_fault_df),baseline_df=no_fault_processed)
+fault_results = detect_fault(current_processed, no_fault_processed, sensor_columns)
 
 # Step 7: Visualization toggles
 st.markdown("### 📊 Graphical Analysis")
-
 with st.expander("📉 Time Domain Signals"):
-    plot_time_domain_signals(current_df)
+    plot_time_domain_signals(current_processed , no_fault_processed, sensor_columns)
 
 with st.expander("🔍 FFT with Anomaly Detection"):
-    plot_fft_with_anomalies(current_processed,fault_results,sensor_columns=get_sensor_columns(no_fault_df))
+    plot_fft_with_anomalies(current_processed, fault_results, sensor_columns)
 
 with st.expander("🔁 Overlay Comparison with No-Fault Data"):
     plot_overlay_comparison(no_fault_df, current_df)
 
-st.markdown("### 📊 Graphical Analysis")
-
 with st.expander("🎛 Spectrogram View (STFT)"):
-    plot_spectrogram(current_df,cl=get_sensor_columns(no_fault_df))
-
-
-
+    plot_spectrogram(current_df, sensor_columns)
 
 # Step 8: Final Decision Display
 st.markdown("---")
 st.markdown("## 🧠 Final Machine Health Evaluation")
 
-# Step 8: Final Machine Health Evaluation
-st.markdown("---")
-st.markdown("## 🧠 Final Machine Health Evaluation")
-
 if fault_results:
     st.error("🚨 FAULT DETECTED!")
-    
     for report in fault_results:
         sensor = report['sensor']
         msg = report['message']
         deviation = report['deviation']
-        
+
         st.markdown(f"🔴 **{sensor}**: {msg}")
         with st.expander(f"📊 View Deviation Details for {sensor}"):
             st.write(f"**RMS**: Current = {deviation['RMS'][0]:.4f}, Baseline = {deviation['RMS'][1]:.4f}")
             st.write(f"**Crest Factor**: Current = {deviation['Crest'][0]:.4f}, Baseline = {deviation['Crest'][1]:.4f}")
             st.write(f"**Kurtosis**: Current = {deviation['Kurtosis'][0]:.4f}, Baseline = {deviation['Kurtosis'][1]:.4f}")
-    
-    # 👇 Optional visual effect
+
     st.toast("⚠️ Fault detected in machine!", icon="🚨")
-    st.snow()  # or st.balloons() if you prefer celebration style
 else:
     st.success("✅ Machine is in PERFECT CONDITION. No anomalies detected.")
     st.toast("🎉 All good! No faults found.", icon="✅")
-
