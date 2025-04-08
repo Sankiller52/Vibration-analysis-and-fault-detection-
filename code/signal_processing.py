@@ -14,7 +14,7 @@ def compute_fft(signal, sampling_rate=1000):
     n = len(signal)
     freq = np.fft.fftfreq(n, d=1 / sampling_rate)
     spectrum = np.abs(fft(signal))
-    return freq[:n ], spectrum[:n ]
+    return freq[:n], spectrum[:n]
 
 # --- Statistical Features ---
 def calculate_features(signal):
@@ -29,18 +29,34 @@ def calculate_features(signal):
         'Kurtosis': kurt
     }
 
-# --- Main Processing Function ---
-def process_signals(l, sensor_columns, sampling_rate=1000):
-    df=pd.DataFrame()
-    
-    results = {}
-    
+# --- 1. Function to return DataFrame only ---
+def process_signals(df_input, sensor_columns, sampling_rate=1000):
+    df = pd.DataFrame()
+
     for sensor in sensor_columns:
-        clean_signal = butterworth_filter(l[sensor].values, fs=sampling_rate)
+        clean_signal = butterworth_filter(df_input[sensor].values, fs=sampling_rate)
         freq, spectrum = compute_fft(clean_signal)
         stats = calculate_features(clean_signal)
 
-        # Save to results
+        df[f'{sensor}_filtered'] = clean_signal
+        df[f'{sensor}_fftfreq'] = freq
+        df[f'{sensor}_fftspectrum'] = spectrum
+        df[f'{sensor}_rms'] = stats['RMS']
+        df[f'{sensor}_p2p'] = stats['PeakToPeak']
+        df[f'{sensor}_crest'] = stats['CrestFactor']
+        df[f'{sensor}_kurtosis'] = stats['Kurtosis']
+
+    return df
+
+# --- 2. Function to return results dict only ---
+def get_signal_results(df_input, sensor_columns, sampling_rate=1000):
+    results = {}
+
+    for sensor in sensor_columns:
+        clean_signal = butterworth_filter(df_input[sensor].values, fs=sampling_rate)
+        freq, spectrum = compute_fft(clean_signal)
+        stats = calculate_features(clean_signal)
+
         results[sensor] = {
             'filtered': clean_signal,
             'fft_freq': freq,
@@ -48,13 +64,4 @@ def process_signals(l, sensor_columns, sampling_rate=1000):
             'features': stats
         }
 
-        # Append to DataFrame
-        df[f'{sensor}_fftfreq'] = freq
-        df[f'{sensor}_fftspectrum'] = spectrum
-        df[f'{sensor}_filtered'] = clean_signal
-        df[f'{sensor}_rms'] = stats['RMS']
-        df[f'{sensor}_p2p'] = stats['PeakToPeak']
-        df[f'{sensor}_crest'] = stats['CrestFactor']
-        df[f'{sensor}_kurtosis'] = stats['Kurtosis']
-
-    return df
+    return results

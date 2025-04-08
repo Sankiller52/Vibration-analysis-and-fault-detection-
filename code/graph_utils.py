@@ -1,48 +1,81 @@
 import streamlit as st
 import plotly.graph_objs as go
 import numpy as np
+import time
 from scipy.signal import spectrogram
 
 # Live Data Plot (continuously updating, pinned to top)
 def live_data_plot(df, sensor_columns):
-    st.markdown("<div style='position:fixed; top:70px; right:20px; z-index:9999; background-color:#f9f9f9; padding:10px; border-radius:10px; box-shadow:0px 0px 10px rgba(0,0,0,0.1);'>", unsafe_allow_html=True)
-    st.markdown("**📡 Live Monitoring (Unprocessed Data)**")
-
+    st.markdown("## 📡 Live Monitoring (Raw Vibration Data)")
+    
+    # Create a container for each sensor's live graph
     for sensor in sensor_columns:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            y=df[sensor].values,
-            mode='lines',
-            name=sensor,
-            line=dict(color='royalblue')
-        ))
-        fig.update_layout(
-            height=200,
-            margin=dict(l=20, r=20, t=30, b=20),
-            xaxis_title='Sample Index',
-            yaxis_title='Amplitude',
-            template='plotly_white'
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        graph_container = st.empty()
 
+        # Simulate live feed (example: update last 200 points)
+        for _ in range(1):  # Single update per run
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                y=df[sensor].values[-200:],  # Show last 200 points
+                mode='lines',
+                name=sensor,
+                line=dict(color='royalblue')
+            ))
+            fig.update_layout(
+                title=f"Live - {sensor}",
+                xaxis_title='Sample Index',
+                yaxis_title='Amplitude',
+                height=250,
+                template='plotly_white',
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+            graph_container.plotly_chart(fig, use_container_width=True)
+            time.sleep(0.5)  # To simulate update (adjust as needed)
+
+from plotly.subplots import make_subplots
+import plotly.graph_objs as go
+import streamlit as st
 
 def plot_time_domain_signals(df, baseline_df, sensor_columns):
     st.subheader("📉 Time-Domain Signal Comparison")
-    for sensor in sensor_columns:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(y=baseline_df[f'{sensor}_filtered'].values, name='Baseline', line=dict(color='green', dash='dash')))
-        fig.add_trace(go.Scatter(y=df[f'{sensor}_filtered'].values, name='Current', line=dict(color='red')))
 
-        fig.update_layout(
-            title=f"Time Domain - {sensor}",
-            xaxis_title='Sample Index',
-            yaxis_title='Amplitude',
-            template='plotly_white',
-            height=300,
-            showlegend=True
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        # Create 2 rows, 1 column subplot (one below the other)
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        subplot_titles=("Baseline", "Current")
+    )
+
+    # Baseline signal (top)
+    fig.add_trace(go.Scatter(
+        y=baseline_df['sensor1_filtered'].values,
+        mode='lines',
+        name='Baseline',
+        line=dict(color='green')
+    ), row=1, col=1)
+
+    # Current signal (bottom)
+    fig.add_trace(go.Scatter(
+        y=df['sensor2_filtered'].values,
+        mode='lines',
+        name='Current',
+        line=dict(color='red')
+    ), row=2, col=1)
+
+    fig.update_layout(
+        title_text=f"Time Domain Signal - sensor",
+        height=500,
+        showlegend=False,
+        template='plotly_white'
+    )
+
+    fig.update_xaxes(title_text="Sample Index", row=2, col=1)
+    fig.update_yaxes(title_text="Amplitude", row=1, col=1)
+    fig.update_yaxes(title_text="Amplitude", row=2, col=1)
+
+    st.plotly_chart(fig, use_container_width=True)
+
 
 
 def plot_fft_with_anomalies(df, fault_results, sensor_columns):
@@ -95,8 +128,8 @@ def plot_overlay_comparison(no_fault_df, current_df):
         min_len = min(len(x1), len(x2))
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(y=x1[:min_len], name='No Fault', line=dict(color='green')))
-        fig.add_trace(go.Scatter(y=x2[:min_len], name='Current', line=dict(color='red')))
+        fig.add_trace(go.Scatter(y=x1[:min_len], name='No Fault', line=dict(color='#1E90FF')))
+        fig.add_trace(go.Scatter(y=x2[:min_len], name='Current', line=dict(color='#FF6347')))
         fig.update_layout(
             title=f"Overlay - {col}",
             xaxis_title='Sample Index',

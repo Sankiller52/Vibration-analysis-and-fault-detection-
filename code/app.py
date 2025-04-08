@@ -4,8 +4,9 @@ import threading
 import time
 import pandas as pd
 from data_loader import get_available_machines, get_machine_and_data, load_data
-from signal_processing import process_signals, calculate_features
+from signal_processing import process_signals,get_signal_results
 from fault_detection import detect_fault
+from fault_interpreter import interpret_fault
 from graph_utils import (
     plot_fft_with_anomalies,
     plot_time_domain_signals,
@@ -17,12 +18,6 @@ from graph_utils import (
 DATA_DIR = "machine_data"
 st.set_page_config(page_title="Vibration Analysis", layout="wide")
 st.title("🛠️ Real-Time Vibration Analysis System")
-
-# Pin live graph section
-with st.container():
-    st.markdown("<div style='position:fixed;top:80px;right:20px;width:500px;z-index:999;background:white;border:1px solid #ccc;padding:10px;border-radius:10px;'>", unsafe_allow_html=True)
-    live_plot_area = st.empty()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # Step 1: Machine selection
 machines = get_available_machines()
@@ -52,7 +47,7 @@ if no_fault_df is None:
 st.success("✅ No fault data loaded.")
 
 # Step 4: Upload current data
-uploaded_file = st.file_uploader("📥 Upload current vibration data for analysis", type=["csv"])
+uploaded_file = st.file_uploader("📅 Upload current vibration data for analysis", type=["csv"])
 if uploaded_file is None:
     st.stop()
 
@@ -66,14 +61,20 @@ st.success("✅ Current data loaded successfully.")
 sensor_columns = [col for col in current_df.columns if col.lower().startswith("sensor")]
 
 # Live Graph Start
-threading.Thread(target=live_data_plot, args=(current_df,sensor_columns), daemon=True).start()
+if st.button("Start Live View"):
+    live_data_plot(current_df, sensor_columns)
 
 # Step 5: Signal processing
 st.markdown("### 🧪 Signal Processing & Fault Detection")
 no_fault_processed = process_signals(no_fault_df, sensor_columns)
 current_processed = process_signals(current_df, sensor_columns)
+
+# For additional results like spectrum/statistics
+no_fault_results = get_signal_results(no_fault_df, sensor_columns)
+current_results = get_signal_results(current_df, sensor_columns)
+
 st.dataframe(current_processed.head(10))
-st.dataframe(no_fault_df.head(10))
+st.dataframe(no_fault_processed.head(10))
 
 # Step 6: Fault detection
 fault_results = detect_fault(current_processed, no_fault_processed, sensor_columns)
@@ -104,6 +105,9 @@ if fault_results:
         deviation = report['deviation']
 
         st.markdown(f"🔴 **{sensor}**: {msg}")
+        interpreted_fault = interpret_fault(current_results,no_fault_results)
+        st.markdown(f"🛠️ **Likely Defect**: `{interpreted_fault}`")
+
         with st.expander(f"📊 View Deviation Details for {sensor}"):
             st.write(f"**RMS**: Current = {deviation['RMS'][0]:.4f}, Baseline = {deviation['RMS'][1]:.4f}")
             st.write(f"**Crest Factor**: Current = {deviation['Crest'][0]:.4f}, Baseline = {deviation['Crest'][1]:.4f}")

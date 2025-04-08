@@ -38,3 +38,5 @@ def detect_fault(live_df, baseline_df, sensor_columns, threshold=0.15):
             })
 
     return fault_report
+    
+
