@@ -128,8 +128,8 @@ def plot_overlay_comparison(no_fault_df, current_df):
         min_len = min(len(x1), len(x2))
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(y=x1[:min_len], name='No Fault', line=dict(color='#1E90FF')))
-        fig.add_trace(go.Scatter(y=x2[:min_len], name='Current', line=dict(color='#FF6347')))
+        fig.add_trace(go.Scatter(y=x1[:min_len], name='No Fault', line=dict(color='#FFE5B4')))
+        fig.add_trace(go.Scatter(y=x2[:min_len], name='Current', line=dict(color='#0000FF')))
         fig.update_layout(
             title=f"Overlay - {col}",
             xaxis_title='Sample Index',

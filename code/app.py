@@ -27,18 +27,30 @@ selected_machine = st.selectbox("Select Machine", machine_options)
 # Step 2: New machine setup
 if selected_machine == "➕ Add new machine":
     new_machine_name = st.text_input("Enter machine name")
+    machines = get_available_machines()  # Refresh to get latest
+
     if new_machine_name:
+        if new_machine_name in machines:
+            st.warning("⚠️ Machine already exists. Choose a different name.")
+            st.stop()
+
         no_fault_file = st.file_uploader(f"Upload 'No Fault' data for '{new_machine_name}'", type=['csv'])
+
         if no_fault_file:
-            path = os.path.join(DATA_DIR, f"{new_machine_name}_no_fault.csv")
+            # Create a folder for the new machine
+            machine_folder = os.path.join(DATA_DIR, new_machine_name)
+            os.makedirs(machine_folder, exist_ok=True)
+
+            # Save the no_fault data file
+            path = os.path.join(machine_folder, "no_fault.csv")
             with open(path, "wb") as f:
                 f.write(no_fault_file.read())
-            st.success(f"Saved no fault data for '{new_machine_name}'. Please select it from the list.")
+
+            st.success(f"✅ Saved no fault data for '{new_machine_name}'. Please select it from the list.")
             st.stop()
     else:
         st.warning("Enter a machine name.")
         st.stop()
-
 # Step 3: Load no fault data for selected machine
 _, no_fault_df, _ = get_machine_and_data(selected_machine)
 if no_fault_df is None:
@@ -65,7 +77,7 @@ if st.button("Start Live View"):
     live_data_plot(current_df, sensor_columns)
 
 # Step 5: Signal processing
-st.markdown("### 🧪 Signal Processing & Fault Detection")
+st.markdown("### 🧪 PROCESSED SIGNAL")
 no_fault_processed = process_signals(no_fault_df, sensor_columns)
 current_processed = process_signals(current_df, sensor_columns)
 
