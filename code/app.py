@@ -80,20 +80,40 @@ with st.expander("🔍 FFT with Anomaly Detection"):
 with st.expander("🔁 Overlay Comparison with No-Fault Data"):
     plot_overlay_comparison(no_fault_df, current_df)
 
-with st.expander("🎛 Spectrogram View (STFT)"):
-    plot_spectrogram(current_df)
+st.markdown("### 📊 Graphical Analysis")
 
-with st.expander("📈 Statistical Summary"):
-    stats = calculate_features(current_df)
-    plot_statistics_summary(stats)
+with st.expander("🎛 Spectrogram View (STFT)"):
+    plot_spectrogram(current_df,cl=get_sensor_columns(no_fault_df))
+
+
+
 
 # Step 8: Final Decision Display
 st.markdown("---")
 st.markdown("## 🧠 Final Machine Health Evaluation")
 
-if fault_results["anomalies"]:
-    st.error("🚨 FAULT DETECTED in the following channels:")
-    for ch in fault_results["anomalies"]:
-        st.markdown(f"🔴 **{ch}**: {fault_results['details'].get(ch, 'Unknown fault')}")
+# Step 8: Final Machine Health Evaluation
+st.markdown("---")
+st.markdown("## 🧠 Final Machine Health Evaluation")
+
+if fault_results:
+    st.error("🚨 FAULT DETECTED!")
+    
+    for report in fault_results:
+        sensor = report['sensor']
+        msg = report['message']
+        deviation = report['deviation']
+        
+        st.markdown(f"🔴 **{sensor}**: {msg}")
+        with st.expander(f"📊 View Deviation Details for {sensor}"):
+            st.write(f"**RMS**: Current = {deviation['RMS'][0]:.4f}, Baseline = {deviation['RMS'][1]:.4f}")
+            st.write(f"**Crest Factor**: Current = {deviation['Crest'][0]:.4f}, Baseline = {deviation['Crest'][1]:.4f}")
+            st.write(f"**Kurtosis**: Current = {deviation['Kurtosis'][0]:.4f}, Baseline = {deviation['Kurtosis'][1]:.4f}")
+    
+    # 👇 Optional visual effect
+    st.toast("⚠️ Fault detected in machine!", icon="🚨")
+    st.snow()  # or st.balloons() if you prefer celebration style
 else:
     st.success("✅ Machine is in PERFECT CONDITION. No anomalies detected.")
+    st.toast("🎉 All good! No faults found.", icon="✅")
+

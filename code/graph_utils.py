@@ -68,23 +68,40 @@ def plot_time_domain_signals(df, title="📉 Time-Domain Signals"):
 
 def plot_overlay_comparison(no_fault_df, current_df):
     st.subheader("🔁 Overlay Comparison with No-Fault Data")
-    for col in current_df.columns:
-        if col not in no_fault_df.columns:
-            continue
-        fig, ax = plt.subplots(figsize=(8, 3))
-        ax.plot(no_fault_df[col], label="No Fault", color='green', alpha=0.7)
-        ax.plot(current_df[col], label="Current", color='red', alpha=0.7)
-        ax.set_title(f"{col} - Overlay")
-        ax.set_xlabel("Samples")
-        ax.set_ylabel("Amplitude")
-        ax.legend()
-        ax.grid(True)
-        st.pyplot(fig)
+
+    common_cols = [col for col in current_df.columns if col in no_fault_df.columns][:2]  # Try 2 for now
+
+    if not common_cols:
+        st.warning("⚠️ No common sensor columns found.")
+        return
+
+    for col in common_cols:
+        try:
+            x1 = no_fault_df[col].dropna().values
+            x2 = current_df[col].dropna().values
+            min_len = min(len(x1), len(x2))
+
+            fig, ax = plt.subplots(figsize=(8, 3))
+            ax.plot(x1[:min_len], label="No Fault", color='green', alpha=0.7)
+            ax.plot(x2[:min_len], label="Current", color='red', alpha=0.7)
+            ax.set_title(f"{col} - Overlay")
+            ax.set_xlabel("Samples")
+            ax.set_ylabel("Amplitude")
+            ax.legend()
+            ax.grid(True)
+
+            st.pyplot(fig)
+
+        except Exception as e:
+            st.error(f"Overlay failed for {col}: {e}")
+
+    st.success("✅ Overlay comparison done!")
 
 
-def plot_spectrogram(df):
+
+def plot_spectrogram(df,cl):
     st.subheader("🎛 Spectrogram / STFT View")
-    for col in df.columns:
+    for col in cl:
         f, t, Sxx = spectrogram(df[col].values, fs=1000)  # assuming fs=1000Hz
         fig, ax = plt.subplots(figsize=(8, 3))
         ax.pcolormesh(t, f, 10 * np.log10(Sxx), shading='gouraud')
