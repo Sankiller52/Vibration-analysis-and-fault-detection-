@@ -52,6 +52,7 @@ def get_available_machines():
 def get_machine_and_data(selected_machine):
     """
     Tries to load the no-fault data for a machine.
+
     Returns:
         - available machines
         - DataFrame of no-fault data (or None)
@@ -59,14 +60,9 @@ def get_machine_and_data(selected_machine):
     """
     machines = get_available_machines()
 
-    # ✅ Automatically create machine folder if missing
-    machine_folder = os.path.join(DATA_DIR, selected_machine)
-    if not os.path.exists(machine_folder):
-        os.makedirs(machine_folder)
-
     if selected_machine in machines:
         file_path = os.path.join(DATA_DIR, f"{selected_machine}_no_fault.csv")
         df = load_data(file_path)
         return machines, df, False
     else:
-        return machines, None, True
+        return machines,None,True
